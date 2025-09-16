@@ -1,14 +1,18 @@
 package com.littlekt
 
+import android.annotation.SuppressLint
 import android.content.Context as AndroidContext
 import com.littlekt.Context as LittleKtContext
 import com.littlekt.AndroidContext as LittleKtAndroidContext
 import android.graphics.PixelFormat
 import android.util.AttributeSet
 import android.view.Choreographer
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import com.littlekt.async.KtScope
+import com.littlekt.input.AndroidInput
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,6 +46,8 @@ class LittleKtSurfaceView @JvmOverloads constructor(
         KtScope.initiate()
         holder.setFormat(PixelFormat.RGBA_8888)
         holder.addCallback(this)
+        isFocusable = true
+        isFocusableInTouchMode = true
     }
 
     var game: ((app: LittleKtContext) -> ContextListener)? = null
@@ -84,6 +90,7 @@ class LittleKtSurfaceView @JvmOverloads constructor(
             androidGraphics?.handleSurfaceCreated(holder.surface)
             app?.startRendering() ?: game?.let(::startApp)
         }
+        requestFocus()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
@@ -93,5 +100,24 @@ class LittleKtSurfaceView @JvmOverloads constructor(
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         stopRendering()
         androidGraphics?.handleSurfaceDestroyed()
+    }
+
+    private val androidInput get() = app?.context?.input as? AndroidInput
+
+    @SuppressLint("ClickableViewAccessibility")
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        return androidInput?.onTouchEvent(event) ?: super.onTouchEvent(event)
+    }
+
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        return androidInput?.onGenericMotionEvent(event) ?: super.onGenericMotionEvent(event)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        return androidInput?.onKeyDown(event) ?: super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        return androidInput?.onKeyUp(event) ?: super.onKeyUp(keyCode, event)
     }
 }
