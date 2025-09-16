@@ -11,9 +11,11 @@ import com.littlekt.graphics.webgpu.SurfaceConfiguration
 import com.littlekt.graphics.webgpu.TextureFormat
 import com.littlekt.graphics.webgpu.TextureUsage
 import io.ygdrasil.nativeHelper.Helper
+import io.ygdrasil.webgpu.NativeSurface
 import io.ygdrasil.webgpu.WGPU
 import io.ygdrasil.webgpu.WGPUInstanceBackend
 import io.ygdrasil.wgpu.wgpuInstanceRelease
+import io.ygdrasil.wgpu.wgpuSurfaceRelease
 
 internal class AndroidGraphics(
     val androidContext: AndroidContext,
@@ -50,20 +52,31 @@ internal class AndroidGraphics(
     }
 
     fun handleSurfaceDestroyed() {
-        releaseSurfaceDependencies()
-    }
-
-    suspend fun handleSurfaceCreated(androidSurface: android.view.Surface) {
-        val window = Helper.nativeWindowFromSurface(androidSurface).let { ffi.NativeAddress(it) }
-        val nativeSurface = wgpu.getSurfaceFromAndroidWindow(window) ?: error("Can't create Surface")
-        surface = Surface(nativeSurface.handler)
-        if (::adapter.isInitialized.not()) {
-            adapter = Adapter((wgpu.requestAdapter(nativeSurface) ?: error("Can't create Adapter")).handler)
-            device = Device(adapter.requestDevice(null).segment)
+        if (::surface.isInitialized) {
+            surface.release()
         }
     }
 
-    private fun releaseSurfaceDependencies() {
+    suspend fun handleSurfaceCreated(androidSurface: android.view.Surface) {
+        if (::adapter.isInitialized.not()) {
+            val tempNativeSurface = createSurface(androidSurface)
+            adapter = Adapter((wgpu.requestAdapter(tempNativeSurface) ?: error("Can't create Adapter")).handler)
+            device = Device(adapter.requestDevice(null).segment)
+            wgpuSurfaceRelease(tempNativeSurface.handler)
+        }
+        surface = Surface(createSurface(androidSurface).handler)
+        configureSurface()
+    }
+
+    private fun createSurface(androidSurface: android.view.Surface): NativeSurface {
+        val window = Helper.nativeWindowFromSurface(androidSurface).let { ffi.NativeAddress(it) }
+        return wgpu.getSurfaceFromAndroidWindow(window) ?: error("Can't create Surface")
+    }
+
+    fun release() {
+        if (::surface.isInitialized) {
+            surface.release()
+        }
         if (::device.isInitialized) {
             device.queue.release()
             device.release()
@@ -71,13 +84,6 @@ internal class AndroidGraphics(
         if (::adapter.isInitialized) {
             adapter.release()
         }
-        if (::surface.isInitialized) {
-            surface.release()
-        }
-    }
-
-    fun release() {
-        releaseSurfaceDependencies()
         wgpuInstanceRelease(wgpu.handler)
     }
 }

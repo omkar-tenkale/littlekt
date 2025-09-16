@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.Cache
 import okhttp3.CacheControl
 import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -126,5 +127,25 @@ private object OkHttpClientProvider {
                     chain.request().newBuilder().header("User-Agent", ua).build()
                 )
             }.build()
+    }
+}
+
+private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
+    enqueue(object : Callback {
+        override fun onFailure(call: Call, e: java.io.IOException) {
+            if (cont.isCancelled.not()) cont.resumeWithException(e)
+        }
+
+        override fun onResponse(call: Call, response: Response) {
+            if (cont.isCancelled) {
+                try { response.close() } catch (_: Throwable) {}
+                return
+            }
+            cont.resume(response)
+        }
+    })
+
+    cont.invokeOnCancellation {
+        try { cancel() } catch (_: Throwable) {}
     }
 }
