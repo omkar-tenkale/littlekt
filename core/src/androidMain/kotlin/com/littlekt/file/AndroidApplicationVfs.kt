@@ -1,17 +1,17 @@
 package com.littlekt.file
 
-import android.net.Uri
 import com.littlekt.AndroidContext
-import com.littlekt.core.generated.resources.Res
 import com.littlekt.log.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
 
-internal class AndroidResourcesVfs(androidContext: AndroidContext, logger: Logger) :
+internal class AndroidApplicationVfs(androidContext: AndroidContext, logger: Logger) :
     LocalVfs(androidContext, logger, baseDir = "") {
 
     override suspend fun loadRawAsset(rawRef: RawAssetRef): LoadedRawAsset {
-        return LoadedRawAsset(rawRef, resourceInputStream(rawRef.url)?.let {
+        return LoadedRawAsset(rawRef, internalFileInputStream(rawRef.url)?.let {
             ByteBufferImpl(it.readBytes())
         })
     }
@@ -19,16 +19,14 @@ internal class AndroidResourcesVfs(androidContext: AndroidContext, logger: Logge
     override suspend fun loadSequenceStreamAsset(
         sequenceRef: SequenceAssetRef
     ): SequenceStreamCreatedAsset {
-        return SequenceStreamCreatedAsset(sequenceRef, resourceInputStream(sequenceRef.url)?.let {
+        return SequenceStreamCreatedAsset(sequenceRef, internalFileInputStream(sequenceRef.url)?.let {
             JvmByteSequenceStream(it)
         })
     }
 
-    private suspend fun resourceInputStream(url: String) = withContext(Dispatchers.IO) {
+    private suspend fun internalFileInputStream(url: String) = withContext(Dispatchers.IO) {
         try {
-            (context as AndroidContext).androidContext.contentResolver.openInputStream(
-                Uri.parse(Res.getUri(url))
-            )
+            FileInputStream(File((context as AndroidContext).androidContext.filesDir, url))
         } catch (e: Exception) {
             logger.error { "Failed loading asset $url: $e" }
             null

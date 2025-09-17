@@ -4,11 +4,12 @@ import com.littlekt.async.KT
 import com.littlekt.async.KtScope
 import com.littlekt.file.AndroidKeyValueStorage
 import com.littlekt.file.AndroidAssetsVfs
-import com.littlekt.file.AndroidResourcesVfs
+import com.littlekt.file.AndroidApplicationVfs
 import com.littlekt.file.AndroidUrlVfs
 import com.littlekt.file.vfs.VfsFile
 import com.littlekt.input.AndroidInput
 import com.littlekt.log.Logger
+import com.littlekt.log.setLevel
 import com.littlekt.util.datastructure.fastForEach
 import com.littlekt.util.now
 import ffi.globalMemory
@@ -33,12 +34,14 @@ internal class AndroidContext(
     override val stats by lazy { AppStats() }
     override val graphics by lazy { AndroidGraphics(this) }
     override val input by lazy { AndroidInput() }
-    override val logger = Logger(configuration.title)
-    override val vfsResources by lazy { AndroidResourcesVfs(this, logger) }
+    override val logger = Logger(configuration.title).apply {
+        setLevel(Logger.Level.TRACE)
+    }
+    override val vfsResources by lazy { AndroidAssetsVfs(this, logger) }
     override val resourcesVfs: VfsFile = vfsResources.root
     override val vfsUrl by lazy { AndroidUrlVfs(this, androidContext, logger) }
     override val urlVfs: VfsFile = vfsUrl.root
-    override val vfsApplication by lazy { AndroidAssetsVfs(this, logger) }
+    override val vfsApplication by lazy { AndroidApplicationVfs(this, logger) }
     override val applicationVfs: VfsFile = vfsApplication.root
     override val kvStorage by lazy { AndroidKeyValueStorage(androidContext) }
     override val clipboard by lazy { AndroidClipboard(androidContext) }

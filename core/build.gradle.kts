@@ -11,8 +11,6 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.compose.multiplatform)
-    alias(libs.plugins.compose.compiler)
     id("module.publication")
 }
 
@@ -73,8 +71,6 @@ kotlin {
                 implementation(libs.kotlinx.atomicfu)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.serialization.json)
-                implementation(compose.runtime)
-                implementation(compose.components.resources)
             }
         }
         val commonTest by getting {
