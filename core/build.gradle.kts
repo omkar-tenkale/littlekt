@@ -134,7 +134,6 @@ kotlin {
         val androidMain by getting {
             dependencies {
                 implementation(libs.kotlinx.coroutines.android)
-                implementation(libs.android.panama)
                 implementation(libs.android.native.helper)
                 implementation(libs.okhttp)
                 implementation(libs.android.exoplayer)

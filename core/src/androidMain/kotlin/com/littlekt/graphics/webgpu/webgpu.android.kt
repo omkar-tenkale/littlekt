@@ -9,9 +9,8 @@ import com.littlekt.file.IntBuffer
 import com.littlekt.file.IntBufferImpl
 import com.littlekt.file.ShortBuffer
 import com.littlekt.file.ShortBufferImpl
-import com.sun.jna.Native
 import com.sun.jna.Pointer
-import com.v7878.foreign.MemorySegment
+import java.lang.foreign.MemorySegment
 import ffi.NativeAddress
 import ffi.memoryScope
 import io.ygdrasil.wgpu.WGPUBuffer
@@ -25,11 +24,8 @@ internal actual fun nativeMappedRange(
 ): ByteBuffer {
     val ptr: NativeAddress =
         wgpuBufferGetMappedRange(segment, offset.toULong(), size.toULong()) ?: error("Failed to get mapped range")
-    val addr = Pointer.nativeValue(ptr)
-
-    val seg0 = MemorySegment.ofAddress(addr)
-    val seg = seg0.reinterpret(size)
-
+    
+    val seg = MemorySegment(ptr, size)
     return ByteBufferImpl(size.toInt(), segment = seg)
 }
 
@@ -49,10 +45,10 @@ actual fun Queue.nativeWriteTexture(
     }
 }
 
-private fun MemorySegment.toPointer() = this.nativeAddress().let(::Pointer)
+private fun MemorySegment.toPointer() = this.pointer
 
-private fun dataBuffer(dataOffset: Long, data: GenericBuffer<*>) =
-    if (dataOffset > 0) data.segment.asSlice(dataOffset).toPointer() else data.segment.toPointer()
+private fun dataBuffer(dataOffset: Long, data: GenericBuffer<*>): NativeAddress =
+    if (dataOffset > 0) data.segment.asSlice(dataOffset).pointer else data.segment.pointer
 
 actual fun Queue.nativeWriteIntBuffer(
     buffer: GPUBuffer, offset: Long, dataOffset: Long, data: IntBuffer, size: Long
@@ -108,5 +104,5 @@ actual fun Queue.nativeWriteShortBuffer(
 }
 
 actual fun getNativeWebGPUTextureByteSize(texture: WGPUTexture): Long {
-    return Native.POINTER_SIZE.toLong()
+    return 0L // same as webMain impl
 }
