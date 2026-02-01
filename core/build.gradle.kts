@@ -29,7 +29,7 @@ kotlin {
     jvm { compilerOptions { jvmTarget = JvmTarget.JVM_25 } }
     androidTarget {
         publishLibraryVariants("release")
-        compilerOptions { jvmTarget = JvmTarget.JVM_22 }
+        compilerOptions { jvmTarget = JvmTarget.JVM_25 }
     }
     js(KotlinJsCompilerType.IR) {
         browser {
@@ -165,7 +165,7 @@ android {
     compileSdk = libs.versions.android.compile.sdk.get().toInt()
     defaultConfig { minSdk = libs.versions.android.min.sdk.get().toInt() }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_22
-        targetCompatibility = JavaVersion.VERSION_22
+        sourceCompatibility = JavaVersion.toVersion(25)
+        targetCompatibility = JavaVersion.toVersion(25)
     }
 }

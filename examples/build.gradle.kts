@@ -17,7 +17,7 @@ repositories { maven(url = "https://maven.pkg.jetbrains.space/public/p/kotlinx-h
 kotlin {
     tasks.withType<JavaExec> { jvmArgs("--enable-native-access=ALL-UNNAMED") }
     androidTarget {
-        compilerOptions { jvmTarget = JvmTarget.JVM_22 }
+        compilerOptions { jvmTarget = JvmTarget.JVM_25 }
     }
     jvm {
         compilerOptions { jvmTarget = JvmTarget.JVM_25 }
@@ -147,8 +147,8 @@ android {
         compose = true
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_22
-        targetCompatibility = JavaVersion.VERSION_22
+        sourceCompatibility = JavaVersion.toVersion(25)
+        targetCompatibility = JavaVersion.toVersion(25)
     }
     sourceSets {
         named("main") {

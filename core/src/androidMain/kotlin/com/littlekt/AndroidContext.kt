@@ -100,19 +100,26 @@ internal class AndroidContext(
     }
 
     private fun initLogging() {
-        val callback = WGPULogCallback.allocate(globalMemory) { level, cMessage, userdata ->
-            val message = cMessage?.data?.toKString(cMessage.length) ?: "empty message"
-            when (level) {
-                WGPULogLevel_Error -> logger.error { message }
-                WGPULogLevel_Warn -> logger.warn { message }
-                WGPULogLevel_Info -> logger.info { message }
-                WGPULogLevel_Debug -> logger.debug { message }
-                WGPULogLevel_Trace -> logger.trace { message }
-                else -> logger.warn { "Unknown log level $level with message $message" }
+        // Android's runtime does not provide a usable implementation of the Java FFM API
+        // (java.lang.foreign.*). The wgpu4k logging callback allocation path may rely on it,
+        // so we defensively disable WGPU logging if this fails at runtime.
+        try {
+            val callback = WGPULogCallback.allocate(globalMemory) { level, cMessage, userdata ->
+                val message = cMessage?.data?.toKString(cMessage.length) ?: "empty message"
+                when (level) {
+                    WGPULogLevel_Error -> logger.error { message }
+                    WGPULogLevel_Warn -> logger.warn { message }
+                    WGPULogLevel_Info -> logger.info { message }
+                    WGPULogLevel_Debug -> logger.debug { message }
+                    WGPULogLevel_Trace -> logger.trace { message }
+                    else -> logger.warn { "Unknown log level $level with message $message" }
+                }
             }
+            wgpuSetLogLevel(WGPULogLevel_Trace)
+            wgpuSetLogCallback(callback, globalMemory.bufferOfAddress(callback.handler).handler)
+        } catch (t: Throwable) {
+            logger.warn { "WGPU logging disabled on Android: ${t::class.simpleName}: ${t.message}" }
         }
-        wgpuSetLogLevel(WGPULogLevel_Trace)
-        wgpuSetLogCallback(callback, globalMemory.bufferOfAddress(callback.handler).handler)
     }
 
     fun dispatchResize() {
