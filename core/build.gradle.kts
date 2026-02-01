@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinJsCompilerType
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
+    alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.kotlin.serialization)
     id("module.publication")
@@ -26,6 +27,10 @@ kotlin {
         systemProperty("env", env ?: "dev")
     }
     jvm { compilerOptions { jvmTarget = JvmTarget.JVM_25 } }
+    androidTarget {
+        publishLibraryVariants("release")
+        compilerOptions { jvmTarget = JvmTarget.JVM_22 }
+    }
     js(KotlinJsCompilerType.IR) {
         browser {
             binaries.executable()
@@ -117,10 +122,27 @@ kotlin {
         val wasmJsMain by getting
         val wasmJsTest by getting
 
-        val jvmAndroidMain = maybeCreate("jvmAndroidMain")
+        val jvmAndroidMain =
+            maybeCreate("jvmAndroidMain").apply {
+                dependencies {
+                    implementation(libs.wgpu4k.native)
+                    implementation(libs.wgpu4k)
+                }
+            }
 
         jvmAndroidMain.dependsOn(commonMain)
         jvmMain.dependsOn(jvmAndroidMain)
+
+        val androidMain by getting {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.android)
+                implementation(libs.android.native.helper)
+                implementation(libs.okhttp)
+                implementation(libs.android.exoplayer)
+            }
+        }
+        androidMain.dependsOn(jvmAndroidMain)
+        val androidUnitTest by getting
 
         all {
             languageSettings.apply {
@@ -135,5 +157,15 @@ kotlin {
                 compilerOptions.configure { freeCompilerArgs.add("-Xexpect-actual-classes") }
             }
         }
+    }
+}
+
+android {
+    namespace = "com.littlekt.core"
+    compileSdk = libs.versions.android.compile.sdk.get().toInt()
+    defaultConfig { minSdk = libs.versions.android.min.sdk.get().toInt() }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_22
+        targetCompatibility = JavaVersion.VERSION_22
     }
 }
